@@ -79,7 +79,7 @@ function Dashboard() {
 
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="space-y-4 lg:col-span-2">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid items-start gap-4 md:grid-cols-2">
               <BenchmarkPanel evs={evs} delay={60} />
               <RankingPanel
                 evs={evs}
