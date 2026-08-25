@@ -1,5 +1,4 @@
-import { RotateCcw } from "lucide-react";
-import logoAsset from "@/assets/logo-maquinarias.png.asset.json";
+import { RotateCcw, Upload, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -21,7 +20,10 @@ type Props = {
   filters: Filters;
   onChange: (patch: Partial<Filters>) => void;
   onReset: () => void;
+  onImport: (file: File | null) => void;
+  onClearData: () => void;
   activeCount: number;
+  hasData: boolean;
 };
 
 function FilterSelect({
@@ -58,16 +60,16 @@ function FilterSelect({
   );
 }
 
-export function FilterBar({ filters, onChange, onReset, activeCount }: Props) {
+export function FilterBar({ filters, onChange, onReset, onImport, onClearData, activeCount, hasData }: Props) {
   return (
     <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-[1400px] flex-col gap-3 px-4 py-3 lg:px-8">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <img
-              src={logoAsset.url}
+              src="/icon-logo.png"
               alt="Maquinarias — Comprometidos de por vida"
-              className="h-8 w-auto shrink-0"
+              className="h-9 w-auto shrink-0 rounded-md object-contain"
             />
             <div className="hidden min-w-0 border-l border-border pl-3 sm:block">
               <p className="truncate font-display text-sm font-semibold tracking-tight">
@@ -76,21 +78,58 @@ export function FilterBar({ filters, onChange, onReset, activeCount }: Props) {
               <p className="truncate text-xs text-muted-foreground">Panel Ejecutivo</p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onReset}
-            disabled={activeCount === 0}
-            className="shrink-0 gap-2 rounded-full text-muted-foreground hover:text-primary"
-          >
-            <RotateCcw className="h-4 w-4" />
-            <span className="hidden sm:inline">Limpiar filtros</span>
-            {activeCount > 0 && (
-              <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">
-                {activeCount}
-              </span>
+
+          <div className="flex shrink-0 items-center gap-2">
+            <input
+              id="dashboard-import-input"
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                onImport(file);
+                event.target.value = "";
+              }}
+            />
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => document.getElementById("dashboard-import-input")?.click()}
+              className="gap-2 rounded-full"
+            >
+              <Upload className="h-4 w-4" />
+              <span className="hidden sm:inline">Importar Excel</span>
+            </Button>
+
+            {hasData && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClearData}
+                className="gap-2 rounded-full text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Vaciar datos</span>
+              </Button>
             )}
-          </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onReset}
+              disabled={activeCount === 0}
+              className="shrink-0 gap-2 rounded-full text-muted-foreground hover:text-primary"
+            >
+              <RotateCcw className="h-4 w-4" />
+              <span className="hidden sm:inline">Limpiar filtros</span>
+              {activeCount > 0 && (
+                <span className="rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">
+                  {activeCount}
+                </span>
+              )}
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4">

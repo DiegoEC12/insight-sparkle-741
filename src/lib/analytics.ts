@@ -28,27 +28,53 @@ export type PreguntaRow = {
   obs: string | null;
 };
 
-const data = raw as unknown as {
+export type Dataset = {
   evaluaciones: Evaluacion[];
   indicadores: IndicadorRow[];
   preguntas: PreguntaRow[];
 };
 
-export const evaluaciones = data.evaluaciones;
-export const indicadores = data.indicadores;
-export const preguntas = data.preguntas;
+const defaultData = raw as unknown as Dataset;
+const emptyData: Dataset = { evaluaciones: [], indicadores: [], preguntas: [] };
 
 export const MARCA_PROPIA = "MAQUINARIAS";
 
 export const uniq = (values: string[]) => Array.from(new Set(values)).sort();
 
-export const concesionarias = uniq(evaluaciones.map((e) => e.concesionaria));
-export const marcas = uniq(evaluaciones.map((e) => e.marca));
-export const ubicaciones = uniq(evaluaciones.map((e) => e.ubicacion));
-
-export const indicadorCatalogo = Array.from(
+export let evaluaciones = defaultData.evaluaciones;
+export let indicadores = defaultData.indicadores;
+export let preguntas = defaultData.preguntas;
+export let concesionarias = uniq(evaluaciones.map((e) => e.concesionaria));
+export let marcas = uniq(evaluaciones.map((e) => e.marca));
+export let ubicaciones = uniq(evaluaciones.map((e) => e.ubicacion));
+export let indicadorCatalogo = Array.from(
   new Map(indicadores.map((i) => [i.n, { n: i.n, nombre: i.nombre, peso: i.peso }])).values(),
 ).sort((a, b) => a.n - b.n);
+
+export function refreshDerivedCollections(data: Dataset) {
+  evaluaciones = data.evaluaciones;
+  indicadores = data.indicadores;
+  preguntas = data.preguntas;
+  concesionarias = uniq(evaluaciones.map((e) => e.concesionaria));
+  marcas = uniq(evaluaciones.map((e) => e.marca));
+  ubicaciones = uniq(evaluaciones.map((e) => e.ubicacion));
+  indicadorCatalogo = Array.from(
+    new Map(indicadores.map((i) => [i.n, { n: i.n, nombre: i.nombre, peso: i.peso }])).values(),
+  ).sort((a, b) => a.n - b.n);
+}
+
+export function applyImportedDataset(data: Dataset | null | undefined) {
+  const next = data && Array.isArray(data.evaluaciones) ? data : emptyData;
+  refreshDerivedCollections(next);
+}
+
+export function clearImportedDataset() {
+  refreshDerivedCollections(emptyData);
+}
+
+export function hasLoadedDataset() {
+  return evaluaciones.length > 0 || indicadores.length > 0 || preguntas.length > 0;
+}
 
 export const labelOf = (e: Evaluacion) => `${title(e.concesionaria)} ${title(e.marca)}`;
 
