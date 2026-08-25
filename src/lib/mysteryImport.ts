@@ -47,6 +47,13 @@ const normalizeText = (value: unknown): string => {
   return String(value).trim();
 };
 
+const normalizeHeaderKey = (value: unknown): string =>
+  normalizeText(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+
 const normalizeNumber = (value: unknown): number => {
   if (value == null || value === "") return 0;
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
@@ -152,20 +159,62 @@ export function parseEvaluaciones(sheet: XLSX.WorkSheet): EvaluacionRow[] {
 }
 
 export function parseIndicadores(sheet: XLSX.WorkSheet): IndicadorRow[] {
-  const rows = toObjectRows(sheet);
-  return normalizeRows(rows).map((row) => {
-    const r = row as Record<string, unknown>;
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, blankrows: false, defval: "" }) as unknown[][];
 
-    const ev = normalizeText(firstMatch(r, ["ev", "id_evaluacion", "evaluacion_id", "id"]));
-    const n = normalizeNumber(firstMatch(r, ["n", "numero", "indicador_numero", "indicador_n"]));
-    const nombre = normalizeText(firstMatch(r, ["nombre", "indicador", "descripcion"]));
-    const peso = normalizeNumber(firstMatch(r, ["peso", "weight", "ponderacion"]));
-    const cumpl = normalizeNumber(firstMatch(r, ["cumpl", "cumplimiento", "valor", "score"]));
+  const indicators: IndicadorRow[] = [];
+
+  rows.forEach((row, rowIndex) => {
+    if (!Array.isArray(row) || row.length < 8) return;
+
+    const values = row.map((cell) => normalizeText(cell));
+    const name = values[7];
+    const cumplimiento = values[8] ?? values[9] ?? values[6] ?? "0";
+    const ev = values[0] || `EV_${rowIndex + 1}`;
+
+    if (!name || name.toLowerCase().includes("indicador") || name.toLowerCase().includes("nombre")) {
+      return;
+    }
+
+    const numeric = normalizeNumber(cumplimiento);
+    if (!Number.isFinite(numeric) || numeric < 0) return;
+
+    indicators.push({
+      ev,
+      n: indicators.filter((item) => item.ev === ev).length + 1,
+      nombre: name,
+      peso: normalizeNumber(values[6] ?? values[5] ?? 1),
+      cumpl: numeric,
+    });
+  });
+
+  if (indicators.length > 0) {
+    return indicators;
+  }
+
+  const objectRows = toObjectRows(sheet);
+  return normalizeRows(objectRows).map((row) => {
+    const r = row as Record<string, unknown>;
+    const ev = normalizeText(firstMatch(r, ["ev", "id_evaluacion", "evaluacion_id", "id", "evaluacion"])) || "";
+    const n = normalizeNumber(firstMatch(r, ["n", "numero", "indicador_numero", "indicador_n", "orden"])) || 0;
+    const nombre = normalizeText(
+      firstMatch(r, [
+        "nombre",
+        "indicador",
+        "descripcion",
+        "indicadornombre",
+        "nombreindicador",
+        "titulo",
+        "criterio",
+        "seguimiento",
+      ]),
+    );
+    const peso = normalizeNumber(firstMatch(r, ["peso", "weight", "ponderacion", "valorpeso"]));
+    const cumpl = normalizeNumber(firstMatch(r, ["cumpl", "cumplimiento", "valor", "score", "resultado", "porcentaje"]));
 
     return {
       ev,
-      n: Number(n),
-      nombre,
+      n: Number(n || 1),
+      nombre: nombre || "Indicador",
       peso,
       cumpl,
     };
